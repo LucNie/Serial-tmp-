@@ -1,33 +1,51 @@
-#include <iostream>
 
-int main()
+// Serial library
+#include "./serial.h"
+#include <unistd.h>
+#include <stdio.h>
+
+
+#if defined (_WIN32) || defined(_WIN64)
+    //for serial ports above "COM9", we must use this extended syntax of "\\.\COMx".
+    //also works for COM0 to COM9.
+    //https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea?redirectedfrom=MSDN#communications-resources
+    #define SERIAL_PORT "\\\\.\\COM1"
+#endif
+#if defined (__linux__) || defined(__APPLE__)
+    #define SERIAL_PORT "/dev/ttyACM0"
+#endif
+
+
+
+/*!
+ * \brief main  Simple example that send ASCII characters to the serial device
+ * \return      0 : success
+ *              <0 : an error occured
+ */
+int main( /*int argc, char *argv[]*/)
 {
-    testSerialComm()
-}
+    // Serial object
+    serialib serial;
 
-void testSerialComm()
-{
 
-    std::string port = "COM1";
-    int device = open(port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+    // Connection to serial port
+    char errorOpening = serial.openDevice(SERIAL_PORT, 115200);
 
-    std::string response;
-    char buffer[64];
 
-    do
+    // If connection fails, return the error code otherwise, display a success message
+    if (errorOpening!=1) return errorOpening;
+    printf ("Successful connection to %s\n",SERIAL_PORT);
+
+
+    // Display ASCII characters (from 32 to 128)
+    for (int c=32;c<128;c++)
     {
-        int n = read(device, buffer, sizeof buffer);
+        serial.writeChar(c);
+        usleep(10000);
+    }
 
-        if (n > 0) {
-            response += std::string(buffer);
-            std::cout << buffer;
-        }
+    // Close the serial device
+    serial.closeDevice();
 
-    } while (buffer[0] != 'X'); // 'X' means end of transmission
-
-    std::cout << "Response is: " << std::endl;
-    std::cout << response << std::endl;
-
-    close(device);
-
+    return 0 ;
 }
